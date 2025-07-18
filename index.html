@@ -35,17 +35,13 @@
       border-radius: 10px;
       position: relative;
       z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
     #letter-buttons {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
       gap: 2.5vw;
       margin: 3vh auto;
-      width: 100%;
-      max-width: 600px;
+      max-width: 100%;
     }
     #word-area {
       display: flex;
@@ -54,12 +50,10 @@
       margin: 2vh auto;
       min-height: 60px;
       flex-wrap: wrap;
-      width: 100%;
-      max-width: 600px;
     }
     .letter-btn, .word-letter {
       padding: 2.5vw;
-      font-size: clamp(16px, 4vw, 20px);
+      font-size: calc(18px + 2vw);
       background-color: #4CAF50;
       color: white;
       border: none;
@@ -103,27 +97,26 @@
       50% { background-color: #FFD700; }
     }
     #message {
-      font-size: clamp(18px, 4vw, 22px);
+      font-size: calc(20px + 2vw);
       margin: 3vh 0;
       color: #333;
       word-wrap: break-word;
-      width: 100%;
     }
     #score {
-      font-size: clamp(14px, 3.5vw, 18px);
+      font-size: calc(16px + 1.5vw);
       margin: 1vh 0;
       color: #333;
     }
     #start-btn, #listen-btn, #pause-btn, #restart-btn {
       padding: 2.5vw 5vw;
-      font-size: clamp(14px, 3.5vw, 18px);
+      font-size: calc(16px + 1.5vw);
       cursor: pointer;
       background-color: #008CBA;
       color: white;
       border: none;
       border-radius: 8px;
       margin: 1.5vh 1vw;
-      min-height: 50px;
+      display: inline-block;
       touch-action: none;
     }
     #start-btn:hover, #listen-btn:hover, #pause-btn:hover, #restart-btn:hover {
@@ -145,25 +138,24 @@
         padding: 4vw;
       }
       #letter-buttons, #word-area {
-        grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
         gap: 2vw;
-        max-width: 90%;
       }
       .letter-btn, .word-letter {
         padding: 3vw;
-        min-height: 55px;
-        font-size: clamp(14px, 4.5vw, 18px);
+        min-height: 50px;
+        font-size: calc(16px + 2vw);
       }
       #start-btn, #listen-btn, #pause-btn, #restart-btn {
         padding: 3vw 4vw;
-        min-height: 55px;
-        font-size: clamp(12px, 4vw, 16px);
+        font-size: calc(14px + 2vw);
+        min-height: 50px;
       }
       #message {
-        font-size: clamp(16px, 4.5vw, 20px);
+        font-size: calc(18px + 2vw);
       }
       #score {
-        font-size: clamp(12px, 4vw, 16px);
+        font-size: calc(14px + 2vw);
       }
     }
     @media (orientation: landscape) and (max-height: 500px) {
@@ -172,12 +164,11 @@
       }
       #letter-buttons, #word-area {
         gap: 1.5vw;
-        max-width: 95%;
       }
       .letter-btn, .word-letter {
         padding: 2vw;
-        min-height: 50px;
-        font-size: clamp(12px, 3.5vw, 16px);
+        min-height: 45px;
+        font-size: calc(14px + 1.5vw);
       }
     }
   </style>
@@ -261,32 +252,12 @@ let gameStarted = false;
 let currentLetterIndex = 0;
 let wordCount = 0;
 let waitingForCorrectLetter = false;
-let lastTouchTime = 0;
-const touchDebounceMs = 100;
-let voicesLoaded = false;
-
-// Cache DOM elements
-const gameContainer = document.getElementById('game-container');
-const wordArea = document.getElementById('word-area');
-const letterButtons = document.getElementById('letter-buttons');
-const message = document.getElementById('message');
-const score = document.getElementById('score');
-const startBtn = document.getElementById('start-btn');
-const listenBtn = document.getElementById('listen-btn');
-const pauseBtn = document.getElementById('pause-btn');
-const restartBtn = document.getElementById('restart-btn');
 
 function setup() {
   let canvas = createCanvas(Math.min(windowWidth, 800), Math.min(windowHeight, 400));
-  canvas.parent(gameContainer);
+  canvas.parent('game-container');
   canvas.style('touch-action', 'none');
   synth = window.speechSynthesis;
-  // Preload voices and wait for them to load
-  synth.onvoiceschanged = () => {
-    voicesLoaded = true;
-    console.log('Voices loaded:', synth.getVoices());
-  };
-  synth.getVoices();
   windowResized();
 }
 
@@ -298,23 +269,18 @@ function windowResized() {
 
 function getEnglishVoice() {
   const voices = synth.getVoices();
-  const voice = voices.find(v => v.lang === 'en-US' || v.lang === 'en_US') || voices[0];
-  console.log('Selected voice:', voice ? voice.name : 'none');
-  return voice;
+  return voices.find(voice => voice.lang === 'en-US' || voice.lang === 'en_US') || voices[0];
 }
 
 function startGame() {
-  if (gameStarted || !voicesLoaded) {
-    if (!voicesLoaded) console.log('Waiting for voices to load');
-    return;
-  }
+  if (gameStarted) return;
   gameStarted = true;
   waitingForCorrectLetter = false;
   currentLetterIndex = 0;
-  startBtn.style.display = 'none';
-  listenBtn.style.display = 'inline-block';
-  pauseBtn.style.display = 'inline-block';
-  restartBtn.style.display = 'inline-block';
+  document.getElementById('start-btn').style.display = 'none';
+  document.getElementById('listen-btn').style.display = 'inline-block';
+  document.getElementById('pause-btn').style.display = 'inline-block';
+  document.getElementById('restart-btn').style.display = 'inline-block';
   let wordObj = words[Math.floor(Math.random() * words.length)];
   currentWord = wordObj.en;
   currentVietnamese = wordObj.vi;
@@ -323,13 +289,13 @@ function startGame() {
   selectedLetters = [];
   displayedLetters = [];
   fireworks = [];
-  message.innerText = "Listen and click the letters!";
-  wordArea.innerHTML = "";
-  letterButtons.innerHTML = "";
+  document.getElementById('message').innerText = "Listen and click the letters!";
+  document.getElementById('word-area').innerHTML = "";
+  document.getElementById('letter-buttons').innerHTML = "";
   let uniqueLetters = [...new Set(currentWord.toUpperCase().split(''))];
   displayedLetters = shuffle(uniqueLetters);
   updateLetterButtons();
-  setTimeout(spellNextLetter, 100);
+  spellNextLetter();
 }
 
 function restartGame() {
@@ -337,14 +303,14 @@ function restartGame() {
   wordCount = 0;
   gameStarted = false;
   waitingForCorrectLetter = false;
-  score.innerText = `Words completed: 0/${totalWords}`;
-  startBtn.style.display = 'inline-block';
-  listenBtn.style.display = 'none';
-  pauseBtn.style.display = 'none';
-  restartBtn.style.display = 'inline-block';
-  message.innerText = "";
-  wordArea.innerHTML = "";
-  letterButtons.innerHTML = "";
+  document.getElementById('score').innerText = `Words completed: 0/${totalWords}`;
+  document.getElementById('start-btn').style.display = 'inline-block';
+  document.getElementById('listen-btn').style.display = 'none';
+  document.getElementById('pause-btn').style.display = 'none';
+  document.getElementById('restart-btn').style.display = 'inline-block';
+  document.getElementById('message').innerText = "";
+  document.getElementById('word-area').innerHTML = "";
+  document.getElementById('letter-buttons').innerHTML = "";
   fireworks = [];
 }
 
@@ -358,31 +324,22 @@ function shuffle(array) {
 
 function spellNextLetter() {
   if (!gameStarted || waitingForCorrectLetter || currentLetterIndex >= currentLetters.length) {
-    message.innerText = "Click the letters or press Listen Again!";
+    document.getElementById('message').innerText = "Click the letters or press Listen Again!";
     return;
   }
   synth.cancel();
   let letter = currentLetters[currentLetterIndex];
-  console.log(`Speaking letter: ${letter}, Index: ${currentLetterIndex}, Word: ${currentWord}`);
   let utterance = new SpeechSynthesisUtterance(letter);
   utterance.lang = 'en-US';
   utterance.voice = getEnglishVoice();
   utterance.volume = 1.0;
   utterance.rate = 0.8;
-  utterance.onerror = (e) => {
-    console.log(`Speech error in spellNextLetter: ${e.error}`);
-    let fallback = new SpeechSynthesisUtterance(letter);
-    fallback.lang = 'en-US';
-    fallback.volume = 1.0;
-    fallback.rate = 0.8;
-    synth.speak(fallback);
-  };
   synth.speak(utterance);
 }
 
 function spellOnce() {
   if (!gameStarted || waitingForCorrectLetter) return;
-  setTimeout(spellNextLetter, 100);
+  spellNextLetter();
 }
 
 function pauseSpeech() {
@@ -390,88 +347,60 @@ function pauseSpeech() {
   synth.cancel();
   waitingForCorrectLetter = false;
   updateButtonStates();
-  message.innerText = "Paused. Press Listen Again to hear the word!";
+  document.getElementById('message').innerText = "Paused. Press Listen Again to hear the word!";
 }
 
 function spellSuperQuickly(callback) {
   synth.cancel();
+  currentLetterIndex = 0;
+  const wordArea = document.getElementById('word-area');
   const letterDivs = wordArea.getElementsByClassName('word-letter');
-  let queue = currentLetters.slice(); // Copy letters to process
-  let retries = 0;
-  const maxRetries = 3;
-
-  function speakNextLetter() {
-    if (queue.length === 0) {
+  function spellNextSuperQuickLetter() {
+    if (currentLetterIndex >= currentLetters.length) {
       callback();
       return;
     }
-    synth.cancel(); // Clear queue before each utterance
-    let letter = queue.shift();
-    let index = currentLetters.length - queue.length - 1;
-    console.log(`SuperQuickly speaking letter: ${letter}, Index: ${index}, Word: ${currentWord}`);
+    let letter = currentLetters[currentLetterIndex];
     let utterance = new SpeechSynthesisUtterance(letter);
     utterance.lang = 'en-US';
     utterance.voice = getEnglishVoice();
     utterance.volume = 1.0;
     utterance.rate = 2.5;
     utterance.onstart = () => {
-      if (letterDivs[index]) {
-        letterDivs[index].classList.add('highlight');
+      if (letterDivs[currentLetterIndex]) {
+        letterDivs[currentLetterIndex].classList.add('highlight');
       }
     };
     utterance.onend = () => {
-      if (letterDivs[index]) {
-        letterDivs[index].classList.remove('highlight');
+      if (letterDivs[currentLetterIndex]) {
+        letterDivs[currentLetterIndex].classList.remove('highlight');
       }
-      setTimeout(speakNextLetter, 100); // Increased delay for mobile
-    };
-    utterance.onerror = (e) => {
-      console.log(`Speech error in spellSuperQuickly: ${e.error}, Letter: ${letter}, Index: ${index}`);
-      if (retries < maxRetries) {
-        retries++;
-        queue.unshift(letter); // Retry the failed letter
-        setTimeout(speakNextLetter, 100);
-      } else {
-        // Fallback: speak letters individually
-        console.log('Falling back to individual letter speech');
-        let fallback = new SpeechSynthesisUtterance(letter);
-        fallback.lang = 'en-US';
-        fallback.volume = 1.0;
-        fallback.rate = 2.5;
-        synth.speak(fallback);
-        setTimeout(speakNextLetter, 100);
-      }
+      currentLetterIndex++;
+      spellNextSuperQuickLetter();
     };
     synth.speak(utterance);
   }
-  speakNextLetter();
+  spellNextSuperQuickLetter();
 }
 
 function updateLetterButtons() {
-  letterButtons.innerHTML = "";
+  document.getElementById('letter-buttons').innerHTML = "";
   displayedLetters.forEach(letter => {
     let btn = document.createElement('button');
     btn.innerText = letter;
     btn.className = 'letter-btn';
-    const handler = (e) => {
-      if (e.type === 'touchstart' || e.type === 'touchend') {
-        e.preventDefault();
-        const now = Date.now();
-        if (now - lastTouchTime < touchDebounceMs) return;
-        lastTouchTime = now;
-      }
+    btn.onclick = () => selectLetter(letter, btn);
+    btn.ontouchstart = (e) => {
+      e.preventDefault();
       selectLetter(letter, btn);
     };
-    btn.onclick = handler;
-    btn.ontouchstart = handler;
-    btn.ontouchend = handler;
-    letterButtons.appendChild(btn);
+    document.getElementById('letter-buttons').appendChild(btn);
   });
   updateButtonStates();
 }
 
 function updateButtonStates() {
-  let buttons = letterButtons.getElementsByClassName('letter-btn');
+  let buttons = document.getElementsByClassName('letter-btn');
   for (let btn of buttons) {
     btn.classList.remove('shake', 'blink');
     btn.disabled = waitingForCorrectLetter && btn.innerText !== currentLetters[currentLetterIndex];
@@ -485,53 +414,46 @@ function updateButtonStates() {
 function selectLetter(letter, button) {
   if (!gameStarted) return;
   let expectedLetter = currentLetters[currentLetterIndex];
-  console.log(`Selected: ${letter}, Expected: ${expectedLetter}, Index: ${currentLetterIndex}, Waiting: ${waitingForCorrectLetter}, SelectedLetters: ${selectedLetters.join('')}, Word: ${currentWord}`);
+  // console.log(`Selected: ${letter}, Expected: ${expectedLetter}, Index: ${currentLetterIndex}, Waiting: ${waitingForCorrectLetter}`);
   if (letter === expectedLetter) {
     waitingForCorrectLetter = false;
     selectedLetters.push(letter);
+    let wordArea = document.getElementById('word-area');
     let letterDiv = document.createElement('div');
     letterDiv.innerText = letter;
     letterDiv.className = 'word-letter';
     wordArea.appendChild(letterDiv);
-    message.innerText = `Right word: ${selectedLetters.join('')}`;
+    document.getElementById('message').innerText = `Right word: ${selectedLetters.join('')}`;
     updateLetterButtons();
     if (selectedLetters.length === currentLetters.length) {
       wordCount++;
-      score.innerText = `Words completed: ${wordCount}/${totalWords}`;
+      document.getElementById('score').innerText = `Words completed: ${wordCount}/${totalWords}`;
       gameStarted = false;
       spellSuperQuickly(() => {
-        message.innerText = `Correct! "${currentWord}" means "${currentVietnamese}" in Vietnamese! ${currentEmoji}`;
+        document.getElementById('message').innerText = `Correct! "${currentWord}" means "${currentVietnamese}" in Vietnamese! ${currentEmoji}`;
         let utterance = new SpeechSynthesisUtterance(currentWord);
         utterance.lang = 'en-US';
         utterance.voice = getEnglishVoice();
         utterance.volume = 1.0;
         utterance.rate = 0.8;
-        utterance.onerror = (e) => {
-          console.log(`Speech error for final word: ${e.error}, Word: ${currentWord}`);
-          let fallback = new SpeechSynthesisUtterance(currentWord);
-          fallback.lang = 'en-US';
-          fallback.volume = 1.0;
-          fallback.rate = 0.8;
-          synth.speak(fallback);
-        };
         synth.speak(utterance);
         createFireworks();
         setTimeout(() => {
-          message.innerText = "";
+          document.getElementById('message').innerText = "";
           startGame();
         }, 5000);
       });
     } else {
       currentLetterIndex++;
-      setTimeout(spellNextLetter, 100);
+      spellNextLetter();
     }
   } else {
     synth.cancel();
     waitingForCorrectLetter = true;
     button.classList.add('shake');
     setTimeout(() => button.classList.remove('shake'), 500);
-    message.innerText = "Wrong letter! Try the blinking letter.";
-    updateButtonStates();
+    document.getElementById('message').innerText = "Wrong letter! Try the blinking letter.";
+    updateLetterButtons();
   }
 }
 
@@ -539,29 +461,21 @@ function checkAnswer() {
   if (!gameStarted) return;
   if (selectedLetters.join('') === currentLetters.join('')) {
     wordCount++;
-    score.innerText = `Words completed: ${wordCount}/${totalWords}`;
+    document.getElementById('score').innerText = `Words completed: ${wordCount}/${totalWords}`;
     gameStarted = false;
     waitingForCorrectLetter = false;
     updateButtonStates();
     spellSuperQuickly(() => {
-      message.innerText = `Correct! "${currentWord}" means "${currentVietnamese}" in Vietnamese! ${currentEmoji}`;
+      document.getElementById('message').innerText = `Correct! "${currentWord}" means "${currentVietnamese}" in Vietnamese! ${currentEmoji}`;
       let utterance = new SpeechSynthesisUtterance(currentWord);
       utterance.lang = 'en-US';
       utterance.voice = getEnglishVoice();
       utterance.volume = 1.0;
       utterance.rate = 0.8;
-      utterance.onerror = (e) => {
-        console.log(`Speech error for final word: ${e.error}, Word: ${currentWord}`);
-        let fallback = new SpeechSynthesisUtterance(currentWord);
-        fallback.lang = 'en-US';
-        fallback.volume = 1.0;
-        fallback.rate = 0.8;
-        synth.speak(fallback);
-      };
       synth.speak(utterance);
       createFireworks();
       setTimeout(() => {
-        message.innerText = "";
+        document.getElementById('message').innerText = "";
         startGame();
       }, 5000);
     });
@@ -569,6 +483,7 @@ function checkAnswer() {
 }
 
 function createFireworks() {
+  let wordArea = document.getElementById('word-area');
   let rect = wordArea.getBoundingClientRect();
   let canvasRect = document.getElementsByTagName('canvas')[0].getBoundingClientRect();
   let xCenter = rect.left + rect.width / 2 - canvasRect.left;
@@ -580,7 +495,7 @@ function createFireworks() {
       vx: random(-5, 5),
       vy: random(-15, -5),
       color: color(random(255), random(255), random(255)),
-      life: 50
+      life: 60
     });
   }
 }
