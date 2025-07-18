@@ -41,7 +41,7 @@
     @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
     @keyframes blink { 0%, 100% { background-color: #4CAF50; } 50% { background-color: #FFD700; } }
 
-    #message { font-size: clamp(1rem, 4vw, 1.5rem); margin: 15px 0; color: #333; min-height: 2.5em; word-wrap: break-word; }
+    #message { font-size: clamp(1.2rem, 5vw, 2rem); margin: 15px 0; color: #333; min-height: 2.5em; word-wrap: break-word; font-weight: bold; }
     #score { font-size: clamp(0.9rem, 3.5vw, 1.2rem); margin: 10px 0; color: #333; }
     #button-area button {
       padding: clamp(10px, 2.5vw, 15px) clamp(15px, 4vw, 25px); font-size: clamp(0.9rem, 3.5vw, 1.25rem);
@@ -84,10 +84,10 @@ document.addEventListener('DOMContentLoaded', () => {
     {en: "english", vi: "tiếng Anh", emoji: "🇬🇧"}, {en: "math", vi: "toán học", emoji: "➕"}, {en: "black", vi: "đen", emoji: "⚫"},
     {en: "white", vi: "trắng", emoji: "⚪"}, {en: "long", vi: "dài", emoji: "📏"}, {en: "funny", vi: "hài hước", emoji: "😂"},
     {en: "many", vi: "nhiều", emoji: "🔢"}, {en: "cute", vi: "dễ thương", emoji: "🥰"}, {en: "warm", vi: "ấm áp", emoji: "🔥"},
-    {en: "yummy", vi: "ngon", emoji: "🍽️"},
-    {en: "school", vi: "trường học", emoji: "🏫"} // TỪ MỚI ĐƯỢC THÊM
+    {en: "yummy", vi: "ngon", emoji: "🍽️"}, {en: "school", vi: "trường học", emoji: "🏫"}
   ];
 
+  let gameWords = [];
   let currentWord, currentLetters, letterButtons;
   let fireworks = [];
   let synth, englishVoice;
@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentLetterIndex = 0;
   let wordCount = 0;
   let waitingForCorrectLetter = false;
+  let finaleInterval;
 
   const totalWords = words.length;
   const gameContainer = document.getElementById('game-container');
@@ -128,19 +129,39 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.windowResized = function() { resizeCanvas(gameContainer.offsetWidth, gameContainer.offsetHeight); }
+  
+  function initializeNewGame() {
+    // Ngừng mọi hoạt động đang diễn ra
+    synth.cancel();
+    clearInterval(finaleInterval);
 
-  function startGame() {
+    wordCount = 0;
     gameStarted = true;
-    waitingForCorrectLetter = false;
-    currentLetterIndex = 0;
-    fireworks = [];
+    
+    // Tạo "bộ bài" mới chứa các từ đã xáo trộn
+    gameWords = shuffle([...words]);
 
     startBtn.style.display = 'none';
     listenBtn.style.display = 'inline-block';
     pauseBtn.style.display = 'inline-block';
     restartBtn.style.display = 'inline-block';
+    
+    startNextRound();
+  }
 
-    let wordObj = words[Math.floor(Math.random() * words.length)];
+  function startNextRound() {
+    // === KIỂM TRA ĐIỀU KIỆN THẮNG ===
+    if (gameWords.length === 0) {
+      handleGameWin();
+      return;
+    }
+
+    waitingForCorrectLetter = false;
+    currentLetterIndex = 0;
+    fireworks = [];
+    
+    scoreEl.innerText = `Words completed: ${wordCount}/${totalWords}`;
+    let wordObj = gameWords.pop(); // Lấy 1 từ từ "bộ bài"
     currentWord = wordObj;
     currentLetters = currentWord.en.toUpperCase().split('');
     
@@ -151,6 +172,26 @@ document.addEventListener('DOMContentLoaded', () => {
     createLetterButtons(shuffledLetters);
 
     spellNextLetter();
+  }
+  
+  function handleGameWin() {
+    gameStarted = false;
+    wordArea.innerHTML = "";
+    letterButtonsContainer.innerHTML = "";
+    messageEl.innerHTML = "🎉 Chúc mừng! 🎉<br/>Bạn đã hoàn thành tất cả các từ!";
+    
+    listenBtn.style.display = 'none';
+    pauseBtn.style.display = 'none';
+
+    // Bắn pháo hoa liên tục 10 lần
+    let fireworksCount = 0;
+    finaleInterval = setInterval(() => {
+        createFireworks(true); // true để bắn pháo hoa ngẫu nhiên
+        fireworksCount++;
+        if (fireworksCount >= 10) {
+            clearInterval(finaleInterval);
+        }
+    }, 500);
   }
 
   function createLetterButtons(letters) {
@@ -202,17 +243,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function updateButtonStates() {
+    if (!gameStarted) return;
     const expectedLetter = currentLetters[currentLetterIndex];
     
     letterButtons.forEach(btn => {
       btn.classList.remove('shake', 'blink');
-
       if (btn.disabled) return;
-
-      if (waitingForCorrectLetter) {
-        if (btn.dataset.letter === expectedLetter) {
-          btn.classList.add('blink');
-        }
+      if (waitingForCorrectLetter && btn.dataset.letter === expectedLetter) {
+        btn.classList.add('blink');
       }
     });
   }
@@ -220,31 +258,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleCorrectWord() {
     wordCount++;
     scoreEl.innerText = `Words completed: ${wordCount}/${totalWords}`;
-    gameStarted = false;
+    gameStarted = false; // Tạm dừng tương tác
     
     spellSuperQuickly(() => {
         messageEl.innerHTML = `Correct! <b>${currentWord.en}</b>: ${currentWord.vi} ${currentWord.emoji}`;
         speak(currentWord.en, 0.8);
-        createFireworks();
-        setTimeout(startGame, 5000);
+        createFireworks(false); // Bắn pháo hoa tại vị trí từ
+        
+        // Chờ một chút rồi bắt đầu vòng mới
+        setTimeout(() => {
+            gameStarted = true;
+            startNextRound();
+        }, 3000);
     });
-  }
-
-  function restartGame() {
-    synth.cancel();
-    wordCount = 0;
-    gameStarted = false;
-    waitingForCorrectLetter = false;
-    scoreEl.innerText = `Words completed: 0/${totalWords}`;
-    startBtn.style.display = 'inline-block';
-    listenBtn.style.display = 'none';
-    pauseBtn.style.display = 'none';
-    restartBtn.style.display = 'none';
-    messageEl.innerText = "Press Start Game to play again!";
-    wordArea.innerHTML = "";
-    letterButtonsContainer.innerHTML = "";
-    fireworks = [];
-    clear();
   }
 
   function shuffle(array) {
@@ -259,8 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     synth.cancel();
     let utterance = new SpeechSynthesisUtterance(text);
     if (englishVoice) { utterance.voice = englishVoice; }
-    utterance.volume = 1.0;
-    utterance.rate = rate;
+    utterance.volume = 1.0; utterance.rate = rate;
     synth.speak(utterance);
     return utterance;
   }
@@ -292,11 +317,18 @@ document.addEventListener('DOMContentLoaded', () => {
       spellNext();
   }
 
-  function createFireworks() {
-    let rect = wordArea.getBoundingClientRect();
-    let containerRect = gameContainer.getBoundingClientRect();
-    let xCenter = rect.left + rect.width / 2 - containerRect.left;
-    let yCenter = rect.top + rect.height / 2 - containerRect.top;
+  function createFireworks(randomPosition) {
+    let xCenter, yCenter;
+    if (randomPosition) {
+        xCenter = random(width * 0.2, width * 0.8);
+        yCenter = random(height * 0.2, height * 0.8);
+    } else {
+        let rect = wordArea.getBoundingClientRect();
+        let containerRect = gameContainer.getBoundingClientRect();
+        xCenter = rect.left + rect.width / 2 - containerRect.left;
+        yCenter = rect.top + rect.height / 2 - containerRect.top;
+    }
+
     for (let i = 0; i < 30; i++) {
       fireworks.push({
         x: xCenter, y: yCenter, vx: random(-5, 5), vy: random(-10, -3),
@@ -316,7 +348,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  startBtn.onclick = startGame;
+  // Gán sự kiện cho các nút ban đầu
+  startBtn.onclick = initializeNewGame;
+  restartBtn.onclick = initializeNewGame;
   listenBtn.onclick = () => { if(gameStarted) spellNextLetter(); };
   pauseBtn.onclick = () => {
     if (!gameStarted) return;
@@ -325,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateButtonStates();
     messageEl.innerText = "Paused. Press Listen Again to resume.";
   };
-  restartBtn.onclick = restartGame;
 });
 </script>
 </body>
