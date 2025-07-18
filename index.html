@@ -62,7 +62,7 @@
     <div id="score">Words completed: 0/50</div>
     <div id="word-area"></div>
     <div id="letter-buttons"></div>
-    <div id="message">Welcome! Press Start Game.</div>
+    <div id="message" aria-live="polite">Welcome! Press Start Game.</div>
   </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -131,14 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
   window.windowResized = function() { resizeCanvas(gameContainer.offsetWidth, gameContainer.offsetHeight); }
   
   function initializeNewGame() {
-    // Ngừng mọi hoạt động đang diễn ra
     synth.cancel();
     clearInterval(finaleInterval);
-
     wordCount = 0;
     gameStarted = true;
-    
-    // Tạo "bộ bài" mới chứa các từ đã xáo trộn
     gameWords = shuffle([...words]);
 
     startBtn.style.display = 'none';
@@ -150,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function startNextRound() {
-    // === KIỂM TRA ĐIỀU KIỆN THẮNG ===
     if (gameWords.length === 0) {
       handleGameWin();
       return;
@@ -161,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fireworks = [];
     
     scoreEl.innerText = `Words completed: ${wordCount}/${totalWords}`;
-    let wordObj = gameWords.pop(); // Lấy 1 từ từ "bộ bài"
+    let wordObj = gameWords.pop();
     currentWord = wordObj;
     currentLetters = currentWord.en.toUpperCase().split('');
     
@@ -174,19 +169,21 @@ document.addEventListener('DOMContentLoaded', () => {
     spellNextLetter();
   }
   
+  // HÀM ĐÃ CẬP NHẬT (SỬA LỖI ĐỌC TIẾNG VIỆT)
   function handleGameWin() {
     gameStarted = false;
     wordArea.innerHTML = "";
     letterButtonsContainer.innerHTML = "";
-    messageEl.innerHTML = "🎉 Chúc mừng! 🎉<br/>Bạn đã hoàn thành tất cả các từ!";
+    
+    messageEl.setAttribute('aria-label', 'Congratulations! You have completed all words!');
+    messageEl.innerHTML = `<span aria-hidden="true">🎉 Chúc mừng! 🎉<br/>Bạn đã hoàn thành tất cả các từ!</span>`;
     
     listenBtn.style.display = 'none';
     pauseBtn.style.display = 'none';
 
-    // Bắn pháo hoa liên tục 10 lần
     let fireworksCount = 0;
     finaleInterval = setInterval(() => {
-        createFireworks(true); // true để bắn pháo hoa ngẫu nhiên
+        createFireworks(true);
         fireworksCount++;
         if (fireworksCount >= 10) {
             clearInterval(finaleInterval);
@@ -255,17 +252,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
+  // HÀM ĐÃ CẬP NHẬT (SỬA LỖI ĐỌC TIẾNG VIỆT)
   function handleCorrectWord() {
     wordCount++;
     scoreEl.innerText = `Words completed: ${wordCount}/${totalWords}`;
-    gameStarted = false; // Tạm dừng tương tác
+    gameStarted = false;
     
     spellSuperQuickly(() => {
-        messageEl.innerHTML = `Correct! <b>${currentWord.en}</b>: ${currentWord.vi} ${currentWord.emoji}`;
+        messageEl.innerHTML = `Correct! <b>${currentWord.en}</b> <span aria-hidden="true">: ${currentWord.vi} ${currentWord.emoji}</span>`;
         speak(currentWord.en, 0.8);
-        createFireworks(false); // Bắn pháo hoa tại vị trí từ
+        createFireworks(false);
         
-        // Chờ một chút rồi bắt đầu vòng mới
         setTimeout(() => {
             gameStarted = true;
             startNextRound();
@@ -348,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Gán sự kiện cho các nút ban đầu
   startBtn.onclick = initializeNewGame;
   restartBtn.onclick = initializeNewGame;
   listenBtn.onclick = () => { if(gameStarted) spellNextLetter(); };
