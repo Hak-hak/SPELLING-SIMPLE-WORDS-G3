@@ -15,8 +15,7 @@
       align-items: center;
       min-height: 100vh;
       font-family: Arial, sans-serif;
-      overflow: auto;
-      touch-action: manipulation;
+      overflow: hidden;
       background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ce79);
       background-size: 400%;
       animation: colorShift 15s ease infinite;
@@ -30,36 +29,37 @@
       text-align: center;
       width: 100%;
       max-width: 800px;
-      padding: 2vw;
+      padding: 3vw;
       box-sizing: border-box;
       background: rgba(255, 255, 255, 0.9);
       border-radius: 10px;
       position: relative;
+      z-index: 1;
     }
     #letter-buttons {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-      gap: 2vw;
+      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+      gap: 2.5vw;
       margin: 3vh auto;
       max-width: 100%;
     }
     #word-area {
       display: flex;
       justify-content: center;
-      gap: 1vw;
+      gap: 1.5vw;
       margin: 2vh auto;
-      min-height: 50px;
+      min-height: 60px;
       flex-wrap: wrap;
     }
     .letter-btn, .word-letter {
-      padding: 2vw;
-      font-size: calc(16px + 2vw);
+      padding: 2.5vw;
+      font-size: calc(18px + 2vw);
       background-color: #4CAF50;
       color: white;
       border: none;
       border-radius: 8px;
-      min-height: 50px;
-      touch-action: manipulation;
+      min-height: 60px;
+      touch-action: none;
       box-sizing: border-box;
     }
     .letter-btn {
@@ -75,7 +75,6 @@
     }
     .letter-btn.shake {
       animation: shake 0.5s ease;
- primes
     }
     .letter-btn.blink {
       animation: blink 1s ease infinite;
@@ -98,27 +97,27 @@
       50% { background-color: #FFD700; }
     }
     #message {
-      font-size: calc(18px + 2vw);
+      font-size: calc(20px + 2vw);
       margin: 3vh 0;
       color: #333;
       word-wrap: break-word;
     }
     #score {
-      font-size: calc(14px + 1.5vw);
+      font-size: calc(16px + 1.5vw);
       margin: 1vh 0;
       color: #333;
     }
     #start-btn, #listen-btn, #pause-btn, #restart-btn {
-      padding: 2vw 4vw;
-      font-size: calc(14px + 1.5vw);
+      padding: 2.5vw 5vw;
+      font-size: calc(16px + 1.5vw);
       cursor: pointer;
       background-color: #008CBA;
       color: white;
       border: none;
       border-radius: 8px;
-      margin: 1vh 1vw;
+      margin: 1.5vh 1vw;
       display: inline-block;
-      touch-action: manipulation;
+      touch-action: none;
     }
     #start-btn:hover, #listen-btn:hover, #pause-btn:hover, #restart-btn:hover {
       background-color: #006d93;
@@ -136,35 +135,40 @@
     }
     @media (max-width: 600px) {
       #game-container {
-        padding: 3vw;
+        padding: 4vw;
       }
       #letter-buttons, #word-area {
-        grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-        gap: 1.5vw;
+        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+        gap: 2vw;
       }
       .letter-btn, .word-letter {
-        padding: 2.5vw;
-        min-height: 40px;
-        font-size: calc(14px + 1.5vw);
+        padding: 3vw;
+        min-height: 50px;
+        font-size: calc(16px + 2vw);
       }
       #start-btn, #listen-btn, #pause-btn, #restart-btn {
-        padding: 2.5vw 3vw;
-        font-size: calc(12px + 1.5vw);
+        padding: 3vw 4vw;
+        font-size: calc(14px + 2vw);
+        min-height: 50px;
       }
       #message {
-        font-size: calc(16px + 1.5vw);
+        font-size: calc(18px + 2vw);
+      }
+      #score {
+        font-size: calc(14px + 2vw);
       }
     }
     @media (orientation: landscape) and (max-height: 500px) {
       #game-container {
-        padding: 1vh;
+        padding: 2vh;
       }
       #letter-buttons, #word-area {
-        gap: 1vw;
+        gap: 1.5vw;
       }
       .letter-btn, .word-letter {
-        padding: 1.5vw;
-        min-height: 35px;
+        padding: 2vw;
+        min-height: 45px;
+        font-size: calc(14px + 1.5vw);
       }
     }
   </style>
@@ -263,6 +267,11 @@ function windowResized() {
   canvas.position(0, 0);
 }
 
+function getEnglishVoice() {
+  const voices = synth.getVoices();
+  return voices.find(voice => voice.lang === 'en-US' || voice.lang === 'en_US') || voices[0];
+}
+
 function startGame() {
   if (gameStarted) return;
   gameStarted = true;
@@ -321,6 +330,8 @@ function spellNextLetter() {
   synth.cancel();
   let letter = currentLetters[currentLetterIndex];
   let utterance = new SpeechSynthesisUtterance(letter);
+  utterance.lang = 'en-US';
+  utterance.voice = getEnglishVoice();
   utterance.volume = 1.0;
   utterance.rate = 0.8;
   synth.speak(utterance);
@@ -351,6 +362,8 @@ function spellSuperQuickly(callback) {
     }
     let letter = currentLetters[currentLetterIndex];
     let utterance = new SpeechSynthesisUtterance(letter);
+    utterance.lang = 'en-US';
+    utterance.voice = getEnglishVoice();
     utterance.volume = 1.0;
     utterance.rate = 2.5;
     utterance.onstart = () => {
@@ -419,6 +432,8 @@ function selectLetter(letter, button) {
       spellSuperQuickly(() => {
         document.getElementById('message').innerText = `Correct! "${currentWord}" means "${currentVietnamese}" in Vietnamese! ${currentEmoji}`;
         let utterance = new SpeechSynthesisUtterance(currentWord);
+        utterance.lang = 'en-US';
+        utterance.voice = getEnglishVoice();
         utterance.volume = 1.0;
         utterance.rate = 0.8;
         synth.speak(utterance);
@@ -453,6 +468,8 @@ function checkAnswer() {
     spellSuperQuickly(() => {
       document.getElementById('message').innerText = `Correct! "${currentWord}" means "${currentVietnamese}" in Vietnamese! ${currentEmoji}`;
       let utterance = new SpeechSynthesisUtterance(currentWord);
+      utterance.lang = 'en-US';
+      utterance.voice = getEnglishVoice();
       utterance.volume = 1.0;
       utterance.rate = 0.8;
       synth.speak(utterance);
@@ -471,7 +488,7 @@ function createFireworks() {
   let canvasRect = document.getElementsByTagName('canvas')[0].getBoundingClientRect();
   let xCenter = rect.left + rect.width / 2 - canvasRect.left;
   let yCenter = rect.top + rect.height / 2 - canvasRect.top;
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 10; i++) {
     fireworks.push({
       x: xCenter,
       y: yCenter,
@@ -484,6 +501,7 @@ function createFireworks() {
 }
 
 function draw() {
+  if (fireworks.length === 0) return;
   clear();
   for (let i = fireworks.length - 1; i >= 0; i--) {
     let f = fireworks[i];
